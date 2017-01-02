@@ -27,6 +27,7 @@ def run_command(command):
 		error('Failed to run "' + command + '": ' + e)
 
 # Check all the things
+something_changed = false
 for thing in things_to_check:
 	old_thing = backup_dir + '/' + thing
 	run_command(['wget', 'http://keldon.net/hanabi/' + thing, '--quiet'])
@@ -35,8 +36,12 @@ for thing in things_to_check:
 	new_md5 = run_command(['md5sum', thing]).decode('utf-8').strip()
 	new_md5 = re.search(r'^(.+?) ', new_md5).group(1)
 	if old_md5 != new_md5:
+		something_changed = true
 		print(thing, 'changed:')
 		print(run_command(['diff', thing, old_thing]))
 	else:
-		print(thing, 'not changed.')	
+		print(thing, 'not changed.')
 	run_command(['rm', thing])
+
+if something_changed:
+	# poopy
