@@ -3,7 +3,9 @@
 # Imports
 import sys
 import subprocess
-import re
+import os
+import urllib.request
+import hashlib
 
 # Configuration
 backup_dir = 'nov29'
@@ -27,21 +29,27 @@ def run_command(command):
 		error('Failed to run "' + command + '": ' + e)
 
 # Check all the things
-something_changed = false
+something_changed = False
 for thing in things_to_check:
 	old_thing = backup_dir + '/' + thing
-	run_command(['wget', 'http://keldon.net/hanabi/' + thing, '--quiet'])
-	old_md5 = run_command(['md5sum', old_thing]).decode('utf-8').strip()
-	old_md5 = re.search(r'^(.+?) ', old_md5).group(1)
-	new_md5 = run_command(['md5sum', thing]).decode('utf-8').strip()
-	new_md5 = re.search(r'^(.+?) ', new_md5).group(1)
+	old_data = open(old_thing, 'rb').read()
+
+	response = urllib.request.urlopen('http://keldon.net/hanabi/' + thing)
+	data = response.read()
+	text = data.decode('utf-8')[:-1]
+	open(thing, 'w').write(text)
+
+	#confusingly, using the binary data straight from urllib gives me a different hash than if i roundtrip it to FS
+	data = open(thing, 'rb').read()
+	old_md5 = hashlib.md5(old_data).hexdigest()
+	new_md5 = hashlib.md5(data).hexdigest()
+
 	if old_md5 != new_md5:
-		something_changed = true
+		something_changed = True
 		print(thing, 'changed:')
-		print(run_command(['diff', thing, old_thing]))
 	else:
 		print(thing, 'not changed.')
-	run_command(['rm', thing])
+
 
 if something_changed:
-	# poopy
+	print("changes!")
